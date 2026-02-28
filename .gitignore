@@ -1,0 +1,17 @@
+# Dependencies
+web/node_modules/
+
+# Next.js
+web/.next/
+web/out/
+
+# Environment
+web/.env
+web/.env.*
+
+# Build
+web/build/
+
+# Misc
+.DS_Store
+*.log
