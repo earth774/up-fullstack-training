@@ -1,7 +1,9 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 function getInitials(name: string): string {
@@ -63,23 +65,112 @@ function PasswordInput({
   );
 }
 
-// Mock data for UI — TODO: wire to API/auth
-const MOCK_PROFILE = {
-  name: "Sarah Chen",
-  username: "sarahchen",
-  bio: "Staff writer. I cover technology, culture, and the messy places where they meet. Based in San Francisco. Previously at Wired.",
-};
-
 export default function EditProfilePage() {
-  const [name, setName] = useState(MOCK_PROFILE.name);
-  const [username, setUsername] = useState(MOCK_PROFILE.username);
-  const [bio, setBio] = useState(MOCK_PROFILE.bio);
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await axios.get("/api/profile");
+        const { user } = res.data;
+        setName(user.name ?? "");
+        setUsername(user.username ?? "");
+        setBio(user.bio ?? "");
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          router.push("/login?redirect=/profile/edit");
+          return;
+        }
+        setProfileError("Failed to load profile");
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+    fetchProfile();
+  }, [router]);
+
+  async function handleSaveProfile() {
+    setProfileError(null);
+    setProfileSuccess(false);
+    if (!name.trim()) {
+      setProfileError("Name is required");
+      return;
+    }
+    setIsSavingProfile(true);
+    try {
+      await axios.patch("/api/profile", {
+        name: name.trim(),
+        username: username.trim() || undefined,
+        bio: bio.trim(),
+      });
+      setProfileSuccess(true);
+      router.refresh();
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.error) {
+        setProfileError(err.response.data.error);
+      } else {
+        setProfileError("Failed to update profile");
+      }
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  async function handleUpdatePassword() {
+    setPasswordError(null);
+    setPasswordSuccess(false);
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Please fill in all password fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirm password do not match");
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      await axios.patch("/api/profile/password", {
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.error) {
+        setPasswordError(err.response.data.error);
+      } else {
+        setPasswordError("Failed to update password");
+      }
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  }
 
   const bioCount = bio.length;
   const bioOverLimit = bioCount > BIO_MAX;
+
+  if (isLoadingProfile) {
+    return (
+      <div className="w-full max-w-[500px] mx-auto pt-8 sm:pt-12 pb-12 flex justify-center">
+        <p className="text-text-2">Loading profile…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[500px] mx-auto pt-8 sm:pt-12 pb-12 flex flex-col gap-6">
@@ -95,6 +186,23 @@ export default function EditProfilePage() {
           Edit profile
         </h1>
 
+        {profileError && (
+          <p
+            className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded"
+            role="alert"
+          >
+            {profileError}
+          </p>
+        )}
+        {profileSuccess && (
+          <p
+            className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded"
+            role="status"
+          >
+            Profile updated successfully.
+          </p>
+        )}
+
         {/* Avatar */}
         <div className="flex flex-col items-center sm:items-start gap-3">
           <div
@@ -107,7 +215,10 @@ export default function EditProfilePage() {
 
         {/* Name */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="edit-name" className="text-[13px] font-medium text-text-1">
+          <label
+            htmlFor="edit-name"
+            className="text-[13px] font-medium text-text-1"
+          >
             Name
           </label>
           <input
@@ -143,7 +254,10 @@ export default function EditProfilePage() {
 
         {/* Bio */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="edit-bio" className="text-[13px] font-medium text-text-1">
+          <label
+            htmlFor="edit-bio"
+            className="text-[13px] font-medium text-text-1"
+          >
             Bio
           </label>
           <textarea
@@ -162,13 +276,15 @@ export default function EditProfilePage() {
           </p>
         </div>
 
-        {/* Buttons — gap-3, h-[44px] to match design */}
+        {/* Buttons — gap-3, h-11 → h-[44px] to match design */}
         <div className="flex flex-row gap-3">
           <button
             type="button"
-            className="h-[44px] rounded-full bg-primary px-6 text-white font-medium text-[15px] hover:opacity-90 transition-opacity"
+            onClick={handleSaveProfile}
+            disabled={isSavingProfile}
+            className="h-[44px] rounded-full bg-primary px-6 text-white font-medium text-[15px] hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Save changes
+            {isSavingProfile ? "Saving…" : "Save changes"}
           </button>
           <Link
             href="/profile"
@@ -190,6 +306,23 @@ export default function EditProfilePage() {
         >
           Change password
         </h2>
+
+        {passwordError && (
+          <p
+            className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded"
+            role="alert"
+          >
+            {passwordError}
+          </p>
+        )}
+        {passwordSuccess && (
+          <p
+            className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded"
+            role="status"
+          >
+            Password updated successfully.
+          </p>
+        )}
 
         <div className="flex flex-col gap-6">
           <PasswordInput
@@ -214,9 +347,11 @@ export default function EditProfilePage() {
 
         <button
           type="button"
-          className="h-[44px] w-fit rounded-full bg-primary px-6 text-white font-semibold text-[15px] hover:opacity-90 transition-opacity"
+          onClick={handleUpdatePassword}
+          disabled={isUpdatingPassword}
+          className="h-[44px] w-fit rounded-full bg-primary px-6 text-white font-semibold text-[15px] hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          Update password
+          {isUpdatingPassword ? "Updating…" : "Update password"}
         </button>
       </section>
     </div>

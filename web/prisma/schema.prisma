@@ -26,6 +26,7 @@ model User {
   username  String        @unique
   password  String
   name      String
+  bio       String?       @db.Text
   statusId  Int           @default(1) @map("status_id")
   status    Status        @relation(fields: [statusId], references: [id])
   createdAt DateTime      @default(now()) @map("created_at")
@@ -37,28 +38,28 @@ model User {
 }
 
 model Category {
-  id        Int           @id
-  name      String        @unique
-  statusId  Int           @default(1) @map("status_id")
-  status    Status        @relation(fields: [statusId], references: [id])
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @default(now()) @updatedAt @map("updated_at")
+  id        Int               @id
+  name      String            @unique
+  statusId  Int               @default(1) @map("status_id")
+  status    Status            @relation(fields: [statusId], references: [id])
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @default(now()) @updatedAt @map("updated_at")
   articles  ArticleCategory[]
 
   @@map("category")
 }
 
 model Article {
-  id        String        @id @default(cuid())
-  title     String
-  content   String
-  authorId  String        @map("user_id")
-  author    User          @relation(fields: [authorId], references: [id])
-  statusId  Int           @default(1) @map("status_id")
-  status    Status        @relation(fields: [statusId], references: [id])
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @default(now()) @updatedAt @map("updated_at")
-  likes     ArticleLike[]
+  id         String            @id @default(cuid())
+  title      String
+  content    String
+  authorId   String            @map("user_id")
+  author     User              @relation(fields: [authorId], references: [id])
+  statusId   Int               @default(1) @map("status_id")
+  status     Status            @relation(fields: [statusId], references: [id])
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @default(now()) @updatedAt @map("updated_at")
+  likes      ArticleLike[]
   categories ArticleCategory[]
 
   @@map("article")

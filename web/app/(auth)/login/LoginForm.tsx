@@ -1,18 +1,56 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false);
+type LoginFormProps = { redirectTo?: string };
 
-  function handleSubmit(e: React.FormEvent) {
+export default function LoginForm({ redirectTo = "/" }: LoginFormProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // UI only — no auth logic yet
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string)?.trim() ?? "";
+    const password = (formData.get("password") as string) ?? "";
+
+    if (!email || !password) {
+      setError("Please fill in email and password.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await axios.post("/api/auth/login", { email, password });
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {error && (
+        <p
+          className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
       <div className="flex flex-col gap-1">
         <label htmlFor="email" className="text-[13px] font-medium text-text-1">
           Email
@@ -27,7 +65,10 @@ export default function LoginForm() {
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-[13px] font-medium text-text-1">
+        <label
+          htmlFor="password"
+          className="text-[13px] font-medium text-text-1"
+        >
           Password
         </label>
         <div className="flex h-10 w-full items-center justify-between gap-2 rounded border border-border bg-white px-3 focus-within:border-primary focus-within:outline-none focus-within:ring-1 focus-within:ring-primary">
@@ -50,13 +91,20 @@ export default function LoginForm() {
       </div>
       <button
         type="submit"
-        className="h-11 w-full rounded-full bg-primary text-white font-medium text-base hover:opacity-90 transition-opacity"
+        disabled={isSubmitting}
+        className="h-11 w-full rounded-full bg-primary text-white font-medium text-base hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        Sign in
+        {isSubmitting ? "Signing in…" : "Sign in"}
       </button>
       <p className="text-center text-sm text-text-2">
         No account?{" "}
-        <Link href="/register" className="font-semibold text-primary hover:underline">
+        <Link
+          href={
+            redirectTo === "/"
+              ? "/register"
+              : `/register?redirect=${encodeURIComponent(redirectTo)}`
+          }
+        >
           Create one
         </Link>
       </p>
