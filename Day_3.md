@@ -1315,6 +1315,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 
+const FOOTER_LINKS = [
+  { label: "Help", href: "#" },
+  { label: "About", href: "#" },
+  { label: "Privacy", href: "#" },
+  { label: "Terms", href: "#" },
+];
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 type PopularArticle = {
   id: string;
   title: string;
@@ -1322,14 +1337,21 @@ type PopularArticle = {
   likeCount: number;
 };
 
+type Category = {
+  id: number;
+  name: string;
+};
+
 export default function Sidebar() {
   const [popularArticles, setPopularArticles] = useState<PopularArticle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
     async function fetchPopularArticles() {
       try {
-        setLoading(true);
+        setLoadingArticles(true);
         const { data } = await axios.get("/api/articles", {
           params: { sort: "popular", limit: 3 },
         });
@@ -1338,11 +1360,25 @@ export default function Sidebar() {
         console.error("Failed to fetch popular articles:", err);
         setPopularArticles([]);
       } finally {
-        setLoading(false);
+        setLoadingArticles(false);
+      }
+    }
+
+    async function fetchCategories() {
+      try {
+        setLoadingCategories(true);
+        const { data } = await axios.get<{ items: Category[] }>("/api/categories");
+        setCategories(data.items);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+        setCategories([]);
+      } finally {
+        setLoadingCategories(false);
       }
     }
 
     fetchPopularArticles();
+    fetchCategories();
   }, []);
 
   return (
@@ -1353,7 +1389,7 @@ export default function Sidebar() {
           <h3 className="text-[13px] font-bold text-text-1 mb-4">
             Popular Articles
           </h3>
-          {loading ? (
+          {loadingArticles ? (
             <div className="text-sm text-text-3">Loading...</div>
           ) : popularArticles.length === 0 ? (
             <div className="text-sm text-text-3">No articles yet</div>
@@ -1382,7 +1418,49 @@ export default function Sidebar() {
             </ul>
           )}
         </section>
-        {/* ... rest of sidebar */}
+
+        <div className="h-px bg-border" />
+
+        {/* Recommended topics */}
+        <section>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-text-3 mb-4">
+            Recommended topics
+          </h3>
+          {loadingCategories ? (
+            <div className="text-sm text-text-3">Loading...</div>
+          ) : categories.length === 0 ? (
+            <div className="text-sm text-text-3">No topics yet</div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/topics/${category.name.toLowerCase()}`}
+                  className="rounded-full bg-surface px-4 py-2 text-sm text-text-2 hover:bg-border hover:text-text-1 transition-colors"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <div className="h-px bg-border" />
+
+        {/* Footer links */}
+        <footer className="flex flex-wrap gap-2 text-sm text-text-3">
+          {FOOTER_LINKS.map((link, i) => (
+            <span key={link.label} className="flex items-center gap-2">
+              <Link
+                href={link.href}
+                className="hover:text-text-2 transition-colors"
+              >
+                {link.label}
+              </Link>
+              {i < FOOTER_LINKS.length - 1 && <span>·</span>}
+            </span>
+          ))}
+        </footer>
       </div>
     </aside>
   );
