@@ -52,6 +52,7 @@ model Category {
 model Article {
   id         String            @id @default(cuid())
   title      String
+  subtitle   String?
   content    String
   authorId   String            @map("user_id")
   author     User              @relation(fields: [authorId], references: [id])
