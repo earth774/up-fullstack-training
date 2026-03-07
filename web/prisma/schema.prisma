@@ -69,7 +69,7 @@ model Article {
 model ArticleCategory {
   id         Int      @id
   articleId  String   @map("article_id")
-  article    Article  @relation(fields: [articleId], references: [id])
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   categoryId Int      @map("category_id")
   category   Category @relation(fields: [categoryId], references: [id])
   statusId   Int      @default(1) @map("status_id")
@@ -85,7 +85,7 @@ model ArticleLike {
   userId    String   @map("user_id")
   user      User     @relation(fields: [userId], references: [id])
   articleId String   @map("article_id")
-  article   Article  @relation(fields: [articleId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   statusId  Int      @default(1) @map("status_id")
   status    Status   @relation(fields: [statusId], references: [id])
   createdAt DateTime @default(now()) @map("created_at")
