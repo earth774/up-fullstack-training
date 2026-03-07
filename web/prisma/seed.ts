@@ -49,8 +49,18 @@ async function main() {
     },
   })
 
-  // Reset demo articles on re-seed
-  await prisma.article.deleteMany({ where: { authorId: demoUser.id } })
+  // Reset demo articles on re-seed (delete dependent records first due to FK constraints)
+  const demoArticleIds = (
+    await prisma.article.findMany({
+      where: { authorId: demoUser.id },
+      select: { id: true },
+    })
+  ).map((a) => a.id)
+  if (demoArticleIds.length > 0) {
+    await prisma.articleLike.deleteMany({ where: { articleId: { in: demoArticleIds } } })
+    await prisma.articleCategory.deleteMany({ where: { articleId: { in: demoArticleIds } } })
+    await prisma.article.deleteMany({ where: { authorId: demoUser.id } })
+  }
 
   const articles = [
     {
