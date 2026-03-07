@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
     const session = await getSession();
     const currentUserId = session?.userId;
 
+    const sort = searchParams.get("sort") ?? "newest";
+    const orderBy =
+    sort === "popular"
+      ? { likes: { _count: "desc" as const } }
+      : { createdAt: "desc" as const };
+
+
     const [articles, total] = await Promise.all([
       prisma.article.findMany({
         where: {
@@ -42,7 +49,7 @@ export async function GET(request: NextRequest) {
           author: { select: { id: true, name: true } },
           _count: { select: { likes: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip,
         take: limit,
       }),
