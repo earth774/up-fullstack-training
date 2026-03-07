@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Heart, Share2 } from "lucide-react";
+import { Heart, Share2, FilePen } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { CommentSection } from "./CommentSection";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,11 @@ function getReadTime(content: string): number {
 
 export default async function ArticlePage({ params }: Props) {
   const { id } = await params;
+  const session = await getSession();
+  const currentUserId = session?.userId;
+
   const article = await prisma.article.findUnique({
-    where: { id, statusId: 1 },
+    where: { id },
     include: {
       author: { select: { id: true, name: true } },
       categories: {
@@ -39,6 +43,14 @@ export default async function ArticlePage({ params }: Props) {
 
   if (!article) notFound();
 
+  const isDraft = article.statusId === 2;
+  const isOwner = currentUserId === article.author.id;
+
+  // Draft articles are only accessible by the owner
+  if (isDraft && !isOwner) {
+    notFound();
+  }
+
   const readTime = getReadTime(article.content);
   const initials = getInitials(article.author.name);
   const plainContent = article.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -50,16 +62,24 @@ export default async function ArticlePage({ params }: Props) {
   }).format(article.createdAt);
 
   return (
-    <article className="max-w-[680px] mx-auto pt-12 pb-12 flex flex-col gap-6">
+    <article className={`max-w-[680px] mx-auto pt-12 pb-12 flex flex-col gap-6 ${isDraft ? "relative" : ""}`}>
+      {isDraft && (
+        <div className="absolute -top-2 left-0 right-0 flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700">
+            <FilePen className="w-4 h-4" />
+            Draft — Only visible to you
+          </span>
+        </div>
+      )}
       {/* Title */}
       <h1 className="font-logo text-[42px] font-bold leading-[1.2] text-text-1">
         {article.title}
       </h1>
 
-      {/* Subtitle - excerpt from content */}
-      {excerpt && (
+      {/* Subtitle - from article or excerpt from content */}
+      {(article.subtitle || excerpt) && (
         <p className="font-logo text-2xl font-semibold leading-[1.4] text-text-2">
-          {excerpt}{plainContent.length > 200 ? "…" : ""}
+          {article.subtitle ?? `${excerpt}${plainContent.length > 200 ? "…" : ""}`}
         </p>
       )}
 
