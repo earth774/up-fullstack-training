@@ -14,7 +14,7 @@ export default function Header({ user }: HeaderProps) {
   const isLoggedIn = !!user;
 
   // Build profile URL: use username if available, fallback to id
-  const profileUrl = "/profile";
+  const profileUrl = `/profile/${user?.username}`;
 
   const router = useRouter();
 
