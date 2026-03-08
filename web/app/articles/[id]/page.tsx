@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Heart, Share2, FilePen, Pencil } from "lucide-react";
+import { Share2, FilePen, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { CommentSection } from "./CommentSection";
 import { DeleteArticleButton } from "./DeleteArticleButton";
+import { LikeButton } from "./LikeButton";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,13 @@ export default async function ArticlePage({ params }: Props) {
         where: { statusId: 1 },
         include: { category: { select: { id: true, name: true } } },
       },
-      _count: { select: { likes: true } },
+      _count: {
+        select: {
+          likes: {
+            where: { statusId: 1 },
+          },
+        },
+      },
     },
   });
 
@@ -46,6 +53,21 @@ export default async function ArticlePage({ params }: Props) {
 
   const isDraft = article.statusId === 2;
   const isOwner = currentUserId === article.author.id;
+  const isAuthenticated = !!session;
+
+  // Check if current user has liked this article
+  let userLike = null;
+  if (currentUserId) {
+    userLike = await prisma.articleLike.findUnique({
+      where: {
+        userId_articleId: {
+          userId: currentUserId,
+          articleId: id,
+        },
+      },
+    });
+  }
+  const isLiked = userLike?.statusId === 1;
 
   // Draft articles are only accessible by the owner
   if (isDraft && !isOwner) {
@@ -127,14 +149,12 @@ export default async function ArticlePage({ params }: Props) {
 
       {/* Action bar */}
       <div className="flex items-center gap-5 py-3 border-y border-border">
-        <span className={`flex items-center gap-1.5 text-[15px] ${article._count.likes > 0 ? "text-like" : "text-text-2"}`}>
-          <Heart
-            className="size-[15px]"
-            strokeWidth={2}
-            fill={article._count.likes > 0 ? "currentColor" : "none"}
-          />
-          {article._count.likes}
-        </span>
+        <LikeButton
+          articleId={article.id}
+          initialLikeCount={article._count.likes}
+          initialIsLiked={isLiked}
+          isAuthenticated={isAuthenticated}
+        />
         <div className="flex-1" />
         {/* Edit & Delete buttons - only visible to article owner */}
         {isOwner && (
