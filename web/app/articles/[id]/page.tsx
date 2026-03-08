@@ -236,7 +236,7 @@ export default async function ArticlePage({ params }: Props) {
         </div>
       </div>
 
-      <CommentSection />
+      <CommentSection articleId={article.id} isAuthenticated={isAuthenticated} />
     </article>
   );
 }

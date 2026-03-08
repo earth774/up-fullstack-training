@@ -102,3 +102,5 @@
 ---
 
 *เมื่อพร้อมแล้ว ค่อยเริ่มสร้างโปรเจกต์ตามคู่มือนี้ได้เลยครับ*
+
+[ตารางสรุปการทำงาน](https://docs.google.com/spreadsheets/d/16LxuNjHf3cL8XkVwCs1K2hIcP8EBtaMDzKXBq4Cs3RQ/edit?usp=sharing)
