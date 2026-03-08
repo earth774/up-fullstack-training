@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Heart, Share2, FilePen } from "lucide-react";
+import { Heart, Share2, FilePen, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { CommentSection } from "./CommentSection";
@@ -54,10 +54,7 @@ export default async function ArticlePage({ params }: Props) {
 
   const readTime = getReadTime(article.content);
   const initials = getInitials(article.author.name);
-  const plainContent = article.content
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const plainContent = article.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   const excerpt = plainContent.slice(0, 200);
   const dateStr = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -66,9 +63,7 @@ export default async function ArticlePage({ params }: Props) {
   }).format(article.createdAt);
 
   return (
-    <article
-      className={`max-w-[680px] mx-auto pt-12 pb-12 flex flex-col gap-6 ${isDraft ? "relative" : ""}`}
-    >
+    <article className={`max-w-[680px] mx-auto pt-12 pb-12 flex flex-col gap-6 ${isDraft ? "relative" : ""}`}>
       {isDraft && (
         <div className="absolute -top-2 left-0 right-0 flex justify-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700">
@@ -85,8 +80,7 @@ export default async function ArticlePage({ params }: Props) {
       {/* Subtitle - from article or excerpt from content */}
       {(article.subtitle || excerpt) && (
         <p className="font-logo text-2xl font-semibold leading-[1.4] text-text-2">
-          {article.subtitle ??
-            `${excerpt}${plainContent.length > 200 ? "…" : ""}`}
+          {article.subtitle ?? `${excerpt}${plainContent.length > 200 ? "…" : ""}`}
         </p>
       )}
 
@@ -133,9 +127,7 @@ export default async function ArticlePage({ params }: Props) {
 
       {/* Action bar */}
       <div className="flex items-center gap-5 py-3 border-y border-border">
-        <span
-          className={`flex items-center gap-1.5 text-[15px] ${article._count.likes > 0 ? "text-like" : "text-text-2"}`}
-        >
+        <span className={`flex items-center gap-1.5 text-[15px] ${article._count.likes > 0 ? "text-like" : "text-text-2"}`}>
           <Heart
             className="size-[15px]"
             strokeWidth={2}
@@ -144,8 +136,19 @@ export default async function ArticlePage({ params }: Props) {
           {article._count.likes}
         </span>
         <div className="flex-1" />
-        {/* Delete button - only visible to article owner */}
-        {isOwner && <DeleteArticleButton articleId={article.id} />}
+        {/* Edit & Delete buttons - only visible to article owner */}
+        {isOwner && (
+          <>
+            <Link
+              href={`/articles/${article.id}/edit`}
+              className="flex items-center gap-1.5 text-text-2 text-sm font-medium hover:text-primary transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
+            </Link>
+            <DeleteArticleButton articleId={article.id} />
+          </>
+        )}
         <span className="flex items-center gap-1.5 text-sm text-text-2">
           <Share2 className="size-[14px]" strokeWidth={2} />
           Share
