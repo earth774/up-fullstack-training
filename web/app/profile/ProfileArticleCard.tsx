@@ -12,6 +12,7 @@ type ProfileArticleCardProps = {
   readTimeMinutes: number;
   likeCount: number;
   onDelete?: (id: string) => Promise<void>;
+  isOwnProfile?: boolean;
 };
 
 export default function ProfileArticleCard({
@@ -22,6 +23,7 @@ export default function ProfileArticleCard({
   readTimeMinutes,
   likeCount,
   onDelete,
+  isOwnProfile = false,
 }: ProfileArticleCardProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -61,15 +63,17 @@ export default function ProfileArticleCard({
             {likeCount}
           </span>
           <span className="flex-1" />
-          <Link
-            href={`/articles/${id}/edit`}
-            className="rounded border border-border px-3 py-1.5 text-sm text-text-1 hover:bg-surface transition-colors flex items-center gap-1.5"
-          >
-            <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
-            Edit
-          </Link>
+          {isOwnProfile && (
+            <>
+              <Link
+                href={`/articles/${id}/edit`}
+                className="rounded border border-border px-3 py-1.5 text-sm text-text-1 hover:bg-surface transition-colors flex items-center gap-1.5"
+              >
+                <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+                Edit
+              </Link>
 
-          {showConfirm ? (
+              {showConfirm ? (
             <div className="flex items-center gap-2">
               <span className="text-xs text-red-600">Delete?</span>
               <button
@@ -104,6 +108,8 @@ export default function ProfileArticleCard({
               Delete
             </button>
           )}
+          </>
+        )}
         </div>
       </div>
     </article>
