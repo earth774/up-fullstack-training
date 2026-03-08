@@ -2084,6 +2084,7 @@ export default async function ArticlePage({ params }: Props) {
 **File:** `web/app/api/users/[id]/route.ts`
 
 API นี้รองรับทั้ง `id` (UUID) และ `username` ในหน้าเดียวกัน โดยตรวจสอบรูปแบบของ identifier:
+
 - หากเป็น UUID → ค้นหาด้วย user ID
 - หากไม่ใช่ UUID → ค้นหาด้วย username (case-insensitive)
 
@@ -2223,6 +2224,7 @@ export async function GET(
 ```
 
 **การใช้งาน:**
+
 - `GET /api/users/johndoe` → ค้นหาด้วย username "johndoe"
 - `GET /api/users/550e8400-e29b-41d4-a716-446655440000` → ค้นหาด้วย user ID
 
@@ -2491,30 +2493,205 @@ export default function ProfileHeader({
 }
 ```
 
+**File:** `web/app/profile/ProfileTabs.tsx`
+
+```typescript
+"use client";
+
+type TabId = "home" | "about";
+
+type ProfileTabsProps = {
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
+};
+
+export default function ProfileTabs({
+  activeTab,
+  onTabChange,
+}: ProfileTabsProps) {
+  return (
+    <div
+      className="flex border-b border-border -mb-px"
+      role="tablist"
+      aria-label="Profile sections"
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeTab === "home"}
+        onClick={() => onTabChange("home")}
+        className={`px-4 sm:px-0 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+          activeTab === "home"
+            ? "text-text-1 border-text-1"
+            : "text-text-2 border-transparent hover:text-text-1"
+        }`}
+      >
+        Home
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeTab === "about"}
+        onClick={() => onTabChange("about")}
+        className={`px-4 sm:px-4 py-3 text-sm font-normal transition-colors border-b-2 -mb-px ${
+          activeTab === "about"
+            ? "text-text-1 border-text-1 font-medium"
+            : "text-text-2 border-transparent hover:text-text-1"
+        }`}
+      >
+        About
+      </button>
+    </div>
+  );
+}
+```
+
+**File:** `web/app/profile/ProfileArticleCard.tsx`
+```typescript
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Heart, Pencil, Trash2, Loader2 } from "lucide-react";
+
+type ProfileArticleCardProps = {
+  id: string;
+  title: string;
+  excerpt: string;
+  publishedAt: string;
+  readTimeMinutes: number;
+  likeCount: number;
+  onDelete?: (id: string) => Promise<void>;
+  isOwnProfile?: boolean;
+};
+
+export default function ProfileArticleCard({
+  id,
+  title,
+  excerpt,
+  publishedAt,
+  readTimeMinutes,
+  likeCount,
+  onDelete,
+  isOwnProfile = false,
+}: ProfileArticleCardProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await onDelete(id);
+    } catch {
+      setIsDeleting(false);
+      setShowConfirm(false);
+    }
+  };
+
+  return (
+    <article className="border-b border-border py-6">
+      <div className="flex flex-col gap-3">
+        <Link href={`/articles/${id}`} className="block group">
+          <h2 className="text-xl font-semibold text-text-1 group-hover:text-primary transition-colors line-clamp-2">
+            {title}
+          </h2>
+        </Link>
+        <p className="text-sm text-text-2 line-clamp-2">{excerpt}</p>
+        <div className="flex flex-wrap items-center gap-3 text-[13px] text-text-2">
+          <span>{publishedAt}</span>
+          <span>{readTimeMinutes} min read</span>
+          <span
+            className={`flex items-center gap-1 ${likeCount > 0 ? "text-like" : ""}`}
+          >
+            <Heart
+              className="w-3.5 h-3.5"
+              strokeWidth={2}
+              fill={likeCount > 0 ? "currentColor" : "none"}
+            />
+            {likeCount}
+          </span>
+          <span className="flex-1" />
+          {isOwnProfile && (
+            <>
+              <Link
+                href={`/articles/${id}/edit`}
+                className="rounded border border-border px-3 py-1.5 text-sm text-text-1 hover:bg-surface transition-colors flex items-center gap-1.5"
+              >
+                <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+                Edit
+              </Link>
+
+              {showConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-600">Delete?</span>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    ...
+                  </>
+                ) : (
+                  "Yes"
+                )}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={isDeleting}
+                className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-300 transition-colors disabled:opacity-50"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowConfirm(true)}
+              className="rounded border border-border px-3 py-1.5 text-sm text-text-1 hover:bg-surface transition-colors flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+              Delete
+            </button>
+          )}
+          </>
+        )}
+        </div>
+      </div>
+    </article>
+  );
+}
+```
+
 ### Files Changed
 
 
-| File                                           | Type     | Description                                      |
-| ---------------------------------------------- | -------- | ------------------------------------------------ |
-| `web/app/api/users/[id]/route.ts`              | Modified | รองรับทั้ง UUID และ username ในหน้าเดียวกัน       |
-| `web/app/profile/[username]/page.tsx`          | New      | หน้า profile สาธารณะแบบ username-based           |
-| `web/app/profile/ProfileHeader.tsx`            | Modified | เพิ่ม isOwnProfile, username props               |
-| `web/app/articles/[id]/page.tsx`               | Modified | ลิงก์ profile ใช้ username แทน id                |
-| `web/app/layout.tsx`                           | Modified | ส่ง username ไป Header                          |
-| `web/app/components/Header.tsx`              | Modified | ลิงก์ profile ใช้ username ใน URL               |
-| `web/app/profile/ProfileArticleCard.tsx`       | Modified | ซ่อน Edit/Delete เมื่อไม่ใช่เจ้าของ              |
-| `web/app/profile/page.tsx`                   | Modified | ส่ง isOwnProfile ไป ProfileArticleCard           |
+| File                                     | Type     | Description                                 |
+| ---------------------------------------- | -------- | ------------------------------------------- |
+| `web/app/api/users/[id]/route.ts`        | Modified | รองรับทั้ง UUID และ username ในหน้าเดียวกัน |
+| `web/app/profile/[username]/page.tsx`    | New      | หน้า profile สาธารณะแบบ username-based      |
+| `web/app/profile/ProfileHeader.tsx`      | Modified | เพิ่ม isOwnProfile, username props          |
+| `web/app/articles/[id]/page.tsx`         | Modified | ลิงก์ profile ใช้ username แทน id           |
+| `web/app/layout.tsx`                     | Modified | ส่ง username ไป Header                      |
+| `web/app/components/Header.tsx`          | Modified | ลิงก์ profile ใช้ username ใน URL           |
+| `web/app/profile/ProfileArticleCard.tsx` | Modified | ซ่อน Edit/Delete เมื่อไม่ใช่เจ้าของ         |
+| `web/app/profile/page.tsx`               | Modified | ส่ง isOwnProfile ไป ProfileArticleCard      |
+
 
 ### Testing Checklist
 
-- [ ] API `/api/users/johndoe` คืนค่า user ที่มี username johndoe
-- [ ] API `/api/users/UUID` คืนค่า user ตาม UUID
-- [ ] หน้า `/profile/johndoe` แสดงข้อมูล user ถูกต้อง
-- [ ] หน้า profile ตัวเองแสดงปุ่ม Edit profile
-- [ ] หน้า profile คนอื่นแสดงปุ่ม Follow
-- [ ] หน้า profile คนอื่นไม่แสดงปุ่ม Edit/Delete บทความ
-- [ ] Header avatar ลิงก์ไป `/profile/[username]` ถูกต้อง
-- [ ] Article detail ลิงก์ author ไป `/profile/[username]` ถูกต้อง
+- API `/api/users/johndoe` คืนค่า user ที่มี username johndoe
+- API `/api/users/UUID` คืนค่า user ตาม UUID
+- หน้า `/profile/johndoe` แสดงข้อมูล user ถูกต้อง
+- หน้า profile ตัวเองแสดงปุ่ม Edit profile
+- หน้า profile คนอื่นแสดงปุ่ม Follow
+- หน้า profile คนอื่นไม่แสดงปุ่ม Edit/Delete บทความ
+- Header avatar ลิงก์ไป `/profile/[username]` ถูกต้อง
+- Article detail ลิงก์ author ไป `/profile/[username]` ถูกต้อง
 
 ## 4.5 Comment System
 
@@ -2591,6 +2768,7 @@ model Comment {
 ```
 
 **Run migration:**
+
 ```bash
 cd web
 npx prisma migrate dev --name add_comment_model
@@ -2957,22 +3135,24 @@ export function CommentSection({ articleId, isAuthenticated }: CommentSectionPro
 
 ### Files Changed
 
-| File | Type |
-|------|------|
-| `web/prisma/schema.prisma` | Modified |
-| `web/app/api/articles/[id]/comments/route.ts` | New |
-| `web/app/articles/[id]/CommentSection.tsx` | Modified |
-| `web/app/articles/[id]/page.tsx` | Modified |
+
+| File                                          | Type     |
+| --------------------------------------------- | -------- |
+| `web/prisma/schema.prisma`                    | Modified |
+| `web/app/api/articles/[id]/comments/route.ts` | New      |
+| `web/app/articles/[id]/CommentSection.tsx`    | Modified |
+| `web/app/articles/[id]/page.tsx`              | Modified |
+
 
 ### Testing Checklist
 
-- [ ] API `GET /api/articles/[id]/comments` คืนค่า comments ทั้งหมด
-- [ ] API `POST /api/articles/[id]/comments` สร้าง comment ใหม่
-- [ ] CommentSection แสดง comments จาก API
-- [ ] User ที่ไม่ login เห็น placeholder "Sign in to comment"
-- [ ] User ที่ login สามารถ post comment ได้
-- [ ] Comment ใหม่แสดงทันทีหลัง post
-- [ ] Time ago แสดงถูกต้อง (Just now, 2 hours ago, etc.)
+- API `GET /api/articles/[id]/comments` คืนค่า comments ทั้งหมด
+- API `POST /api/articles/[id]/comments` สร้าง comment ใหม่
+- CommentSection แสดง comments จาก API
+- User ที่ไม่ login เห็น placeholder "Sign in to comment"
+- User ที่ login สามารถ post comment ได้
+- Comment ใหม่แสดงทันทีหลัง post
+- Time ago แสดงถูกต้อง (Just now, 2 hours ago, etc.)
 
 ### UI - ProfileArticleCard (Edit/Delete Visibility)
 
@@ -3118,11 +3298,13 @@ export default function ProfileArticleCard({
 อัปเดตให้ avatar ใน header ลิงก์ไปยัง `/profile/[username]` แทน `/profile` ธรรมดา:
 
 **layout.tsx:**
+
 ```typescript
 <Header user={session ? { id: session.userId, name: session.name, username: session.username } : null} />
 ```
 
 **Header.tsx:**
+
 ```typescript
 type HeaderProps = {
   user: { id: string; name: string; username: string } | null;
@@ -3167,7 +3349,7 @@ const profileIdentifier = article.author.username || article.author.id;
 ```
 
 **การทำงาน:**
+
 - ถ้า author มี username (e.g., "johndoe") → ลิงก์เป็น `/profile/johndoe`
 - ถ้า author ไม่มี username → ลิงก์เป็น `/profile/USER-ID`
-
 
