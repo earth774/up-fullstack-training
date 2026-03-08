@@ -4,6 +4,7 @@ import { Heart, Share2, FilePen } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { CommentSection } from "./CommentSection";
+import { DeleteArticleButton } from "./DeleteArticleButton";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,10 @@ export default async function ArticlePage({ params }: Props) {
 
   const readTime = getReadTime(article.content);
   const initials = getInitials(article.author.name);
-  const plainContent = article.content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const plainContent = article.content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const excerpt = plainContent.slice(0, 200);
   const dateStr = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -62,7 +66,9 @@ export default async function ArticlePage({ params }: Props) {
   }).format(article.createdAt);
 
   return (
-    <article className={`max-w-[680px] mx-auto pt-12 pb-12 flex flex-col gap-6 ${isDraft ? "relative" : ""}`}>
+    <article
+      className={`max-w-[680px] mx-auto pt-12 pb-12 flex flex-col gap-6 ${isDraft ? "relative" : ""}`}
+    >
       {isDraft && (
         <div className="absolute -top-2 left-0 right-0 flex justify-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700">
@@ -79,7 +85,8 @@ export default async function ArticlePage({ params }: Props) {
       {/* Subtitle - from article or excerpt from content */}
       {(article.subtitle || excerpt) && (
         <p className="font-logo text-2xl font-semibold leading-[1.4] text-text-2">
-          {article.subtitle ?? `${excerpt}${plainContent.length > 200 ? "…" : ""}`}
+          {article.subtitle ??
+            `${excerpt}${plainContent.length > 200 ? "…" : ""}`}
         </p>
       )}
 
@@ -126,7 +133,9 @@ export default async function ArticlePage({ params }: Props) {
 
       {/* Action bar */}
       <div className="flex items-center gap-5 py-3 border-y border-border">
-        <span className={`flex items-center gap-1.5 text-[15px] ${article._count.likes > 0 ? "text-like" : "text-text-2"}`}>
+        <span
+          className={`flex items-center gap-1.5 text-[15px] ${article._count.likes > 0 ? "text-like" : "text-text-2"}`}
+        >
           <Heart
             className="size-[15px]"
             strokeWidth={2}
@@ -135,6 +144,8 @@ export default async function ArticlePage({ params }: Props) {
           {article._count.likes}
         </span>
         <div className="flex-1" />
+        {/* Delete button - only visible to article owner */}
+        {isOwner && <DeleteArticleButton articleId={article.id} />}
         <span className="flex items-center gap-1.5 text-sm text-text-2">
           <Share2 className="size-[14px]" strokeWidth={2} />
           Share
@@ -143,7 +154,32 @@ export default async function ArticlePage({ params }: Props) {
 
       {/* Body content */}
       <div
-        className="prose prose-neutral max-w-none text-text-1 text-lg leading-[1.8] [&_blockquote]:border-l-4 [&_blockquote]:border-text-1 [&_blockquote]:pl-4 [&_blockquote]:font-logo [&_blockquote]:text-xl [&_blockquote]:font-semibold [&_blockquote]:leading-normal [&_blockquote]:not-italic"
+        className="prose prose-neutral max-w-none text-text-1
+          /* Headings */
+          [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:mt-8 [&_h1]:mb-4
+          [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-3
+          [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2
+          /* Paragraphs */
+          [&_p]:text-lg [&_p]:leading-[1.8] [&_p]:mb-4
+          /* Lists */
+          [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4
+          [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4
+          [&_li]:mb-1
+          /* Code */
+          [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono
+          [&_pre]:bg-surface [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:mb-4
+          [&_pre_code]:bg-transparent [&_pre_code]:p-0
+          /* Blockquotes */
+          [&_blockquote]:border-l-4 [&_blockquote]:border-text-1 [&_blockquote]:pl-4 [&_blockquote]:font-logo [&_blockquote]:text-xl [&_blockquote]:font-semibold [&_blockquote]:leading-normal [&_blockquote]:not-italic [&_blockquote]:mb-4
+          /* Links */
+          [&_a]:text-primary [&_a]:underline [&_a]:hover:opacity-80
+          /* Images */
+          [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-4
+          /* Horizontal rule */
+          [&_hr]:my-8 [&_hr]:border-border
+          /* Bold and Italic */
+          [&_strong]:font-bold
+          [&_em]:italic"
         dangerouslySetInnerHTML={{ __html: article.content }}
       />
 
